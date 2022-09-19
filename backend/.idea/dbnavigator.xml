@@ -45,7 +45,7 @@
     <retain-sticky-names value="false" />
   </component>
   <component name="DBNavigator.Project.FileConnectionMappingManager">
-    <mapping file-url="file://$PROJECT_DIR$/trivia.psql" connection-id="ceec72b9-d37a-4ad3-973a-2772ac81bb80" session-id="MAIN" current-schema="pg_catalog" />
+    <mapping file-url="file://$PROJECT_DIR$/trivia.psql" connection-id="ceec72b9-d37a-4ad3-973a-2772ac81bb80" session-id="MAIN" current-schema="public" />
   </component>
   <component name="DBNavigator.Project.MethodExecutionManager">
     <method-browser />

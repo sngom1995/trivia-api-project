@@ -138,7 +138,7 @@ class QuestionView extends Component {
             Categories
           </h2>
           <ul>
-            {Array(Object.keys(this.state.categories)).map((id) => (
+            {Object.keys(this.state.categories).map((id) => (
 
               <li
                 key={id}
