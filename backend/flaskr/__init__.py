@@ -1,3 +1,5 @@
+import json
+
 from flask import Flask, jsonify, request, abort
 from flask_cors import CORS
 from sqlalchemy import func, and_
@@ -48,8 +50,11 @@ def create_app(test_config=None):
     @app.route('/categories')
     def get_categories():
         categories = Category.query.all()
-        categories = [cate.format() for cate in categories]
-        return jsonify(categories)
+        # categories = [cate.format() for cate in categories]
+        cat = dict()
+        for c in categories:
+            cat[c.id] = c.type
+        return jsonify({"categories": cat,"success": True})
 
     """
     @TODO:
@@ -73,9 +78,11 @@ def create_app(test_config=None):
         format_questions = [question.format() for question in questions]
         current_categories = questions[0].category
         categories = Category.query.all()
-        categories = [Category.query.get(cate.category).type for cate in questions]
+        cat = dict()
+        for c in  categories:
+            cat[c.id] = c.type
         return jsonify({"questions": format_questions[start:end], "total_questions": len(format_questions),
-                        "categories": categories, "current_category": current_categories})
+                        "categories": cat, "current_category": current_categories})
 
     """
     @TODO:
@@ -211,19 +218,22 @@ def create_app(test_config=None):
     one question at a time is displayed, the user is allowed to answer
     and shown whether they were correct or not.
     """
-
-    @app.route('/quiz/question', methods=['POST'])
+    @app.route('/quizzes', methods=['POST'])
     def next_question():
         data = request.get_json()
-        if data['category'] == 0:
+        if data['quiz_category'] == 0:
             question = Question.query.join(Category, Question.category == Category.id) \
                 .filter(ColumnOperators.notin_(Question.id, data['previous_questions'])) \
                 .order_by(func.random()) \
                 .first()
         else:
+            #data['quiz_category'] = json.dumps(data['quiz_category'])
+            #data['previous_questions'] = json.dumps(data['previous_questions'])
+            print( data['quiz_category'].get("id"))
+            print(data['previous_questions'])
             question = Question.query.join(Category, Question.category == Category.id) \
                 .filter(
-                and_(Category.id == data['category'], ColumnOperators.notin_(Question.id, data['previous_questions']))) \
+                and_(Category.id == data['quiz_category'], ColumnOperators.notin_(Question.id, data['previous_questions']))) \
                 .order_by(func.random()) \
                 .first()
 
@@ -234,6 +244,7 @@ def create_app(test_config=None):
             'success': True,
             'data': question.format()
         })
+
 
     """
     @TODO:

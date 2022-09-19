@@ -34,12 +34,37 @@ class TriviaTestCase(unittest.TestCase):
     Write at least one test for each test for successful operation and for expected errors.
     """
 
+    def test_get_paginated_questions(self):
+        res = self.client().get('/questions')
+        data = json.loads(res.data)
+
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(data['success'], True)
+        self.assertTrue(data['total_questions'])
+        self.assertTrue(len(data['questions']))
+
+    def test_404_sent_requesting_beyond_valid_page(self):
+        res = self.client().get('/questions?page=1000')
+        data = json.loads(res.data)
+
+        self.assertEqual(res.status_code, 404)
+        self.assertEqual(data['success'], False)
+        self.assertEqual(data['message'], 'resource not found')
+
     def test_get_categories(self):
         response = self.client().get('/categories')
         data = json.loads(response.data)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(data['data']), 6)
+
+    def test_404_sent_requesting_beyond_valid_categories(self):
+        res = self.client().get('/categories/100/questions')
+        data = json.loads(res.data)
+
+        self.assertEqual(res.status_code, 404)
+        self.assertEqual(data['success'], False)
+        self.assertEqual(data['message'], 'resource not found')
 
     def test_get_questions(self):
         response = self.client().get('/questions')
@@ -54,6 +79,14 @@ class TriviaTestCase(unittest.TestCase):
 
         response = self.client().delete('/question/1000')
         self.assertEqual(response.status_code, 400)
+
+    def test_422_if_question_does_not_exist(self):
+        res = self.client().delete('/questions/1000')
+        data = json.loads(res.data)
+
+        self.assertEqual(res.status_code, 422)
+        self.assertEqual(data['success'], False)
+        self.assertEqual(data['message'], 'unprocessable')
 
     def test_add_question(self):
         response = self.client().post('/question', \
@@ -81,6 +114,18 @@ class TriviaTestCase(unittest.TestCase):
         data = json.loads(response.data)
         self.assertEqual(data['data'], [])
 
+    def test_405_if_book_creation_not_allowed(self):
+        res = self.client().post('/questions/45', json={'question': 'This is a question',
+                                                        'answer': 'This is an answer',
+                                                        'difficulty': 5,
+                                                        'category': 4})
+        data = json.loads(res.data)
+
+        self.assertEqual(res.status_code, 405)
+        self.assertEqual(data['success'], False)
+        self.assertEqual(data['message'], 'method not allowed')
+
+
     def test_next_question(self):
         response = self.client().post('/quiz/question', json={'category': 0, 'previous_questions': []})
         data = json.loads(response.data)
@@ -90,6 +135,22 @@ class TriviaTestCase(unittest.TestCase):
         res = self.client().get('/quiz/question')
         self.assertEqual(res.status_code, 405)
 
+    def test_post_quiz_questions_byCategory400(self):
+        """" send a request with no data """
+
+        res = self.client().post('/quizzes')
+        data = json.loads(res.data)
+        self.assertEqual(res.status_code, 400)
+        self.assertEqual(data['success'], False)
+        self.assertEqual(data['message'], 'Bad Request')
+
+    def test_get_quiz_questions405(self):
+        '''sends get request to /quizzes'''
+        res = self.client().get('/quizzes')
+        data = json.loads(res.data)
+        self.assertEqual(res.status_code, 405)
+        self.assertEqual(data['success'], False)
+        self.assertEqual(data['message'], 'Method Not Allowed')
 
 # Make the tests conveniently executable
 if __name__ == "__main__":
