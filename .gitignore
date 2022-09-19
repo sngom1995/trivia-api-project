@@ -1,0 +1,14 @@
+.idea
+__pycache__
+frontend/node_modules
+backend/flsakrenv
+
+# OS generated files #
+######################
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
