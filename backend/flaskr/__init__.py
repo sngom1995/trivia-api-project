@@ -55,7 +55,7 @@ def create_app(test_config=None):
         cat = dict()
         for c in categories:
             cat[c.id] = c.type
-        return jsonify({"categories": cat,"success": True})
+        return jsonify({"categories": cat, "success": True})
 
     """
     @TODO:
@@ -79,11 +79,13 @@ def create_app(test_config=None):
         format_questions = [question.format() for question in questions]
         current_categories = questions[0].category
         categories = Category.query.all()
+        if len(format_questions[start:end]) == 0:
+            abort(404)
         cat = dict()
-        for c in  categories:
+        for c in categories:
             cat[c.id] = c.type
         return jsonify({"questions": format_questions[start:end], "total_questions": len(format_questions),
-                        "categories": cat, "current_category": current_categories})
+                        "categories": cat, "current_category": current_categories, "success": True})
 
     """
     @TODO:
@@ -166,8 +168,8 @@ def create_app(test_config=None):
     @app.route('/questions/search', methods=['POST'])
     def search_questions():
         data = request.get_json()
-        #search_term = data.get('searchTerm', None)
-        search_term = data.get('search_term', None)
+        # search_term = data.get('searchTerm', None)
+        search_term = data.get('searchTerm', None)
         try:
             print(search_term)
             selection = Question.query.order_by(Question.id).filter(
@@ -195,17 +197,19 @@ def create_app(test_config=None):
     category to be shown.
     """
 
-    @app.route('/category/<int:category_id>/questions')
+    @app.route('/categories/<int:category_id>/questions')
     def get_question_from_category(category_id):
         questions = Question.query.join(Category, Question.category == Category.id).filter(
             Category.id == category_id).all()
         result = [question.format() for question in questions]
+        q = Question.query.all()
+        cat = Category.query.filter(Category.id == category_id).one_or_none()
 
         return jsonify({
             'success': True,
-            'data': result,
-            'total': len(questions),
-            'category': category_id
+            'questions': result,
+            'totalQuestions': len(q),
+            'current_category': cat.type
         })
 
     """
@@ -219,6 +223,7 @@ def create_app(test_config=None):
     one question at a time is displayed, the user is allowed to answer
     and shown whether they were correct or not.
     """
+
     @app.route('/quizzes2', methods=['POST'])
     def next_question():
         data = request.get_json()
@@ -228,13 +233,14 @@ def create_app(test_config=None):
                 .order_by(func.random()) \
                 .first()
         else:
-            #data['quiz_category'] = json.dumps(data['quiz_category'])
-            #data['previous_questions'] = json.dumps(data['previous_questions'])
-            print( data['quiz_category'].get("id"))
+            # data['quiz_category'] = json.dumps(data['quiz_category'])
+            # data['previous_questions'] = json.dumps(data['previous_questions'])
+            print(data['quiz_category'].get("id"))
             print(data['previous_questions'])
             question = Question.query.join(Category, Question.category == Category.id) \
                 .filter(
-                and_(Category.id == data['quiz_category'], ColumnOperators.notin_(Question.id, data['previous_questions']))) \
+                and_(Category.id == data['quiz_category'],
+                     ColumnOperators.notin_(Question.id, data['previous_questions']))) \
                 .order_by(func.random()) \
                 .first()
 
@@ -245,7 +251,6 @@ def create_app(test_config=None):
             'success': True,
             'data': question.format()
         })
-
 
     """
     @TODO:
@@ -280,6 +285,7 @@ def create_app(test_config=None):
             'success': False,
             'data': 'Request cannot be processed'
         }), 422
+
     @app.route('/')
     def index():
         return jsonify({"message": "hello world"})
@@ -307,33 +313,50 @@ def create_app(test_config=None):
         current_category = body.get('quiz_category', None)
 
         if not previous_questions:
+            print(current_category)
             if current_category:
                 # if no list with previous questions is given, but a category , just gut any question from this category.
-                questions_raw = (Question.query
-                                 .filter(Question.category == str(current_category['id']))
-                                 .all())
+                if current_category['id'] == 0:
+                    questions_raw = Question.query.all()
+                else:
+                    questions_raw = (Question.query
+                                     .filter(Question.category == str(current_category['id']))
+                                     .all())
             else:
                 # if no list with previous questions is given and also no category , just gut any question.
-                questions_raw = (Question.query.all())
+                if current_category['id'] == 0:
+                    questions_raw = Question.query.all()
+
         else:
             if current_category:
                 # if a list with previous questions is given and also a category, query for questions which are not contained in previous question and are in given category
-                questions_raw = (Question.query
-                                 .filter(Question.category == str(current_category['id']))
-                                 .filter(Question.id.notin_(previous_questions))
-                                 .all())
+                if current_category['id'] == 0:
+                    questions_raw = (Question.query
+                                     .filter(Question.id.notin_(previous_questions))
+                                     .all())
+                else:
+                    questions_raw = (Question.query
+                                     .filter(Question.category == str(current_category['id']))
+                                     .filter(Question.id.notin_(previous_questions))
+                                     .all())
             else:
                 # # if a list with previous questions is given but no category, query for questions which are not contained in previous question.
-                questions_raw = (Question.query
-                                 .filter(Question.id.notin_(previous_questions))
-                                 .all())
+                if current_category['id'] == 0:
+                    questions_raw = (Question.query
+                                     .filter(Question.id.notin_(previous_questions))
+                                     .all())
 
         # Format questions & get a random question
         questions_formatted = [question.format() for question in questions_raw]
-        random_question = questions_formatted[random.randint(0, len(questions_formatted)-1)]
+        print(questions_formatted)
+        if len(questions_formatted) > 0:
+            random_question = questions_formatted[random.randint(0, len(questions_formatted) - 1)]
+        else:
+            random_question = questions_formatted
 
         return jsonify({
             'success': True,
             'question': random_question
         })
+
     return app
